@@ -12,6 +12,7 @@ public class StackManager : MonoBehaviour
     public Transform stackRoot;
     public GameObject comboTextPrefab;
     public TextMeshPro scoreTMP;
+    public GameObject endGameUI;
     [Header("Stack Settings")]
     public float blockHeight = 1f;
     public float perfectThreshold = 0.05f;
@@ -87,6 +88,7 @@ public class StackManager : MonoBehaviour
         if (overlap <= 0f)
         {
             Debug.Log("Game Over!");
+            endGameUI.SetActive(true);
             return;
         }
 

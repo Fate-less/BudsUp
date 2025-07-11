@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class TabManager : MonoBehaviour
 {
@@ -33,6 +34,25 @@ public class TabManager : MonoBehaviour
         };
     }
 
+    private void Start()
+    {
+        UpdateTabWidth();
+    }
+
+    private void UpdateTabWidth()
+    {
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas != null)
+        {
+            RectTransform canvasRect = canvas.GetComponent<RectTransform>();
+            tabWidth = canvasRect.rect.width;
+        }
+        else
+        {
+            tabWidth = Screen.width;
+        }
+    }
+
     public void GoToTab(TabType type)
     {
         if (!tabIndexMap.ContainsKey(type))
@@ -53,6 +73,10 @@ public class TabManager : MonoBehaviour
         GoToTab(TabType.Home);
     }
 
+    public void PlayGame()
+    {
+        SceneManager.LoadScene("Gameplay");
+    }
 }
 
 public enum TabType
