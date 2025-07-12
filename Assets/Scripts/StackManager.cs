@@ -15,11 +15,13 @@ public class StackManager : MonoBehaviour
     public GameObject comboTextPrefab;
     public TextMeshPro scoreTMP;
     public GameObject endGameUI;
+    public CharacterPassive activeCharacter;
     [Header("Stack Settings")]
     public float initialWidth = 2f;
     public float initialHeight = 2f;
     public float blockHeight = 1f;
     public float perfectThreshold = 0.05f;
+    public int coin = 0;
     [Header("Combo Settings")]
     public int comboCount = 0;
     public int maxComboToDisplay = 10;
@@ -33,6 +35,9 @@ public class StackManager : MonoBehaviour
     private int blockCount = 0;
     private CameraFollow cameraFollow;
     private float standardWidth = 1.5f;
+    private int scoreMultiplier = 1;
+    private float blockSpeedMultiplier = 1f;
+    private int forcedPerfectStacksRemaining = 0;
 
     private void Start()
     {
@@ -45,6 +50,8 @@ public class StackManager : MonoBehaviour
         cameraFollow = Camera.main.GetComponent<CameraFollow>();
         if (cameraFollow != null)
             cameraFollow.target = baseBlock.transform;
+
+        activeCharacter?.OnGameStart(this);
 
         SpawnNextBlock();
     }
@@ -86,7 +93,7 @@ public class StackManager : MonoBehaviour
         newBlock.SetSize(newBlockWidth, blockHeight);
 
         BlockMover mover = newBlockObj.AddComponent<BlockMover>();
-        mover.moveSpeed = moveSpeed;
+        mover.moveSpeed = moveSpeed * blockSpeedMultiplier;
         mover.moveRange = moveRange;
         mover.direction = (direction == SpawnDirection.Left) ? 1f : -1f;
 
@@ -120,21 +127,25 @@ public class StackManager : MonoBehaviour
         float newWidth = overlap;
         float newX = previousBlock.PositionX + (offset / 2f);
 
-        if (Mathf.Abs(offset) <= perfectThreshold)
+        if (forcedPerfectStacksRemaining > 0 || Mathf.Abs(offset) <= perfectThreshold)
         {
             comboCount++;
             score += comboCount;
+            if (forcedPerfectStacksRemaining > 0)
+                forcedPerfectStacksRemaining--;
             Debug.Log($"Perfect Stack! Combo {comboCount}");
 
             newWidth = previousWidth;
             newX = previousBlock.PositionX;
 
+            activeCharacter?.OnPerfectStack(this);
             ShowPerfectEffect(currentBlock.transform.position);
             ShowComboText(currentBlock.transform.position + Vector3.up * 1.5f, comboCount);
         }
         else
         {
             comboCount = 0;
+            activeCharacter?.OnComboBreak(this);
             score++;
         }
         ShowScoreText(scoreTMP, score);
@@ -167,5 +178,30 @@ public class StackManager : MonoBehaviour
     {
         if (score < 0) return;
         tmp.text = $"{score}";
+    }
+
+    public void AddCoins(int amount)
+    {
+        coin += amount;
+    }
+
+    public void ApplyScoreMultiplier(int multiplier)
+    {
+        scoreMultiplier = multiplier;
+    }
+
+    public void SetBlockSpeedMultiplier(float multiplier)
+    {
+        blockSpeedMultiplier = multiplier;
+    }
+
+    public void ResetBlockSpeedMultiplier()
+    {
+        blockSpeedMultiplier = 1f;
+    }
+
+    public void ForcePerfectStacks(int count)
+    {
+        forcedPerfectStacksRemaining = count;
     }
 }
