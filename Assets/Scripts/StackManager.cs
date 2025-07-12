@@ -8,12 +8,16 @@ public enum SpawnDirection { Left, Right }
 public class StackManager : MonoBehaviour
 {
     [Header("References")]
+    public GameObject baseBlockPrefab;
     public GameObject blockPrefab;
+    public Sprite[] blockPrefabSkins;
     public Transform stackRoot;
     public GameObject comboTextPrefab;
     public TextMeshPro scoreTMP;
     public GameObject endGameUI;
     [Header("Stack Settings")]
+    public float initialWidth = 2f;
+    public float initialHeight = 2f;
     public float blockHeight = 1f;
     public float perfectThreshold = 0.05f;
     [Header("Combo Settings")]
@@ -28,11 +32,20 @@ public class StackManager : MonoBehaviour
     private Block previousBlock;
     private int blockCount = 0;
     private CameraFollow cameraFollow;
+    private float standardWidth = 1.5f;
 
     private void Start()
     {
+        GameObject baseBlockObj = Instantiate(baseBlockPrefab, stackRoot.position, Quaternion.identity, stackRoot);
+        Block baseBlock = baseBlockObj.GetComponent<Block>();
+        baseBlock.SetSize(initialWidth, initialHeight);
+
+        previousBlock = baseBlock;
+
         cameraFollow = Camera.main.GetComponent<CameraFollow>();
-        SpawnInitialBlock();
+        if (cameraFollow != null)
+            cameraFollow.target = baseBlock.transform;
+
         SpawnNextBlock();
     }
 
@@ -42,36 +55,45 @@ public class StackManager : MonoBehaviour
             PlaceBlock();
     }
 
-    private void SpawnInitialBlock()
-    {
-        GameObject baseBlock = Instantiate(blockPrefab, new Vector3(0, 0, 0), Quaternion.identity, stackRoot);
-        previousBlock = baseBlock.GetComponent<Block>();
-        previousBlock.SetSize(3f);
-        if (cameraFollow != null)
-            cameraFollow.target = baseBlock.transform;
-    }
-
     private void SpawnNextBlock()
     {
+        if (previousBlock == null)
+        {
+            Debug.LogError("Previous block is null! Make sure it's assigned before spawning the next block.");
+            return;
+        }
+
         SpawnDirection direction = (Random.value < 0.5f) ? SpawnDirection.Left : SpawnDirection.Right;
-
         float spawnX = (direction == SpawnDirection.Left) ? -3f : 3f;
-        float spawnY = previousBlock.transform.position.y + blockHeight;
+        float overlapOffset = (blockCount == 0) ? 0.1f : 0f;
+        float spawnY = previousBlock.PositionY + (previousBlock.Height / 2f) + (blockHeight / 2f) - overlapOffset;
 
-        GameObject newBlock = Instantiate(blockPrefab, new Vector3(spawnX, spawnY, 0f), Quaternion.identity, stackRoot);
-        newBlock.transform.localScale = new Vector3(previousBlock.width, blockHeight, 1f);
+        GameObject newBlockObj = Instantiate(blockPrefab, new Vector3(spawnX, spawnY, 0f), Quaternion.identity, stackRoot);
+        newBlockObj.GetComponent<SpriteRenderer>().sprite = blockPrefabSkins[Random.Range(0, blockPrefabSkins.Length)];
+        Block newBlock = newBlockObj.GetComponent<Block>();
 
-        BlockMover mover = newBlock.AddComponent<BlockMover>();
+        float newBlockWidth;
+
+        if (blockCount == 0)
+        {
+            newBlockWidth = standardWidth;
+        }
+        else
+        {
+            newBlockWidth = previousBlock.Width;
+        }
+
+        newBlock.SetSize(newBlockWidth, blockHeight);
+
+        BlockMover mover = newBlockObj.AddComponent<BlockMover>();
         mover.moveSpeed = moveSpeed;
         mover.moveRange = moveRange;
         mover.direction = (direction == SpawnDirection.Left) ? 1f : -1f;
 
-        SpriteRenderer sr = newBlock.GetComponent<SpriteRenderer>();
-        if (sr != null)
-            sr.flipX = (direction == SpawnDirection.Right);
-
         if (cameraFollow != null)
             cameraFollow.target = newBlock.transform;
+
+        blockCount++;
     }
 
     private void PlaceBlock()
@@ -82,8 +104,11 @@ public class StackManager : MonoBehaviour
         Block currentBlock = mover.GetComponent<Block>();
         Destroy(mover);
 
-        float offset = currentBlock.positionX - previousBlock.positionX;
-        float overlap = previousBlock.width - Mathf.Abs(offset);
+        float offset = currentBlock.PositionX - previousBlock.PositionX;
+
+        float previousWidth = (blockCount == 1) ? standardWidth : previousBlock.Width;
+
+        float overlap = previousWidth - Mathf.Abs(offset);
 
         if (overlap <= 0f)
         {
@@ -93,28 +118,29 @@ public class StackManager : MonoBehaviour
         }
 
         float newWidth = overlap;
-        float newX = previousBlock.positionX + offset / 2f;
+        float newX = previousBlock.PositionX + (offset / 2f);
 
         if (Mathf.Abs(offset) <= perfectThreshold)
         {
             comboCount++;
-            score += 10 + (comboCount * 5);
-            Debug.Log($"Perfect Stack! Combo: {comboCount}");
+            score += comboCount;
+            Debug.Log($"Perfect Stack! Combo {comboCount}");
+
+            newWidth = previousWidth;
+            newX = previousBlock.PositionX;
 
             ShowPerfectEffect(currentBlock.transform.position);
             ShowComboText(currentBlock.transform.position + Vector3.up * 1.5f, comboCount);
-            ShowScoreText(scoreTMP, score);
-
-            newWidth = previousBlock.width;
-            newX = previousBlock.positionX;
         }
         else
         {
             comboCount = 0;
+            score++;
         }
+        ShowScoreText(scoreTMP, score);
 
-        currentBlock.SetSize(newWidth);
-        currentBlock.SetPositionX(newX);
+        currentBlock.SetSize(newWidth, blockHeight);
+        currentBlock.PositionX = newX;
 
         previousBlock = currentBlock;
         SpawnNextBlock();
@@ -140,6 +166,6 @@ public class StackManager : MonoBehaviour
     private void ShowScoreText(TextMeshPro tmp, int score)
     {
         if (score < 0) return;
-        tmp.text = $"Score: {score}";
+        tmp.text = $"{score}";
     }
 }

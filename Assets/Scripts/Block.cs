@@ -2,24 +2,56 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(SpriteRenderer))]
+[RequireComponent(typeof(BoxCollider2D))]
 public class Block : MonoBehaviour
 {
-    public float width => transform.localScale.x;
-    public float height => transform.localScale.y;
-    public float positionX => transform.position.x;
+    private SpriteRenderer sr;
+    private BoxCollider2D col;
 
-    public void SetSize(float newWidth)
+    private void Awake()
     {
-        transform.localScale = new Vector3(newWidth, height, 1f);
+        sr = GetComponent<SpriteRenderer>();
+        col = GetComponent<BoxCollider2D>();
     }
 
-    public void SetPositionX(float x)
+    public float Width
     {
-        transform.position = new Vector3(x, transform.position.y, 0f);
+        get => sr.size.x;
+        set => SetSize(value, Height);
     }
 
-    public void MoveY(float yOffset)
+    public float Height
     {
-        transform.position += new Vector3(0f, yOffset, 0f);
+        get => sr.size.y;
+        set => SetSize(Width, value);
+    }
+
+    public float PositionX
+    {
+        get => transform.position.x;
+        set => SetPosition(value, PositionY);
+    }
+
+    public float PositionY
+    {
+        get => transform.position.y;
+        set => SetPosition(PositionX, value);
+    }
+
+    public void SetSize(float width, float height)
+    {
+        sr.size = new Vector2(width, height);
+
+        if (col != null)
+        {
+            col.size = new Vector2(width, height);
+            col.offset = Vector2.zero;
+        }
+    }
+
+    public void SetPosition(float x, float y)
+    {
+        transform.position = new Vector3(x, y, 0f);
     }
 }
