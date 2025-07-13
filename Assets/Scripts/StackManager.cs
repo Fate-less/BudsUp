@@ -17,6 +17,7 @@ public class StackManager : MonoBehaviour
     public GameObject endGameUI;
     public CharacterPassive activeCharacter;
     public ClimberController climber;
+    public TextMeshProUGUI coinTMP;
     [Header("Stack Settings")]
     public float initialWidth = 2f;
     public float initialHeight = 2f;
@@ -33,10 +34,11 @@ public class StackManager : MonoBehaviour
     public int score = 0;
     public static StackManager Instance;
 
+    private bool isGameOver = false;
     private Block previousBlock;
     private int blockCount = 0;
     private CameraFollow cameraFollow;
-    private float standardWidth = 1.5f;
+    private float standardWidth = 3f;
     private int scoreMultiplier = 1;
     private float blockSpeedMultiplier = 1f;
     private int forcedPerfectStacksRemaining = 0;
@@ -56,21 +58,26 @@ public class StackManager : MonoBehaviour
 
         cameraFollow = Camera.main.GetComponent<CameraFollow>();
         if (cameraFollow != null)
-            cameraFollow.target = baseBlock.transform;
+            cameraFollow.SetTarget(baseBlock.transform);
 
         activeCharacter?.OnGameStart(this);
+        coin = PlayerPrefs.GetInt("TotalCoins", 0);
 
+        UpdateCoinUI();
         SpawnNextBlock();
     }
 
     private void Update()
     {
+        if (isGameOver) return;
+
         if (Input.GetMouseButtonDown(0))
             PlaceBlock();
     }
 
     private void SpawnNextBlock()
     {
+        if (isGameOver) return;
         if (previousBlock == null)
         {
             Debug.LogError("Previous block is null! Make sure it's assigned before spawning the next block.");
@@ -79,7 +86,7 @@ public class StackManager : MonoBehaviour
 
         SpawnDirection direction = (Random.value < 0.5f) ? SpawnDirection.Left : SpawnDirection.Right;
         float spawnX = (direction == SpawnDirection.Left) ? -3f : 3f;
-        float overlapOffset = (blockCount == 0) ? 0.1f : 0f;
+        float overlapOffset = (blockCount == 0) ? 0.27f : 0f;
         float spawnY = previousBlock.PositionY + (previousBlock.Height / 2f) + (blockHeight / 2f) - overlapOffset;
 
         GameObject newBlockObj = Instantiate(blockPrefab, new Vector3(spawnX, spawnY, 0f), Quaternion.identity, stackRoot);
@@ -105,13 +112,15 @@ public class StackManager : MonoBehaviour
         mover.direction = (direction == SpawnDirection.Left) ? 1f : -1f;
 
         if (cameraFollow != null)
-            cameraFollow.target = newBlock.transform;
+            cameraFollow.SetTarget(newBlock.transform);
 
         blockCount++;
     }
 
     private void PlaceBlock()
     {
+        if (isGameOver) return;
+
         BlockMover mover = FindObjectOfType<BlockMover>();
         if (mover == null) return;
 
@@ -191,6 +200,9 @@ public class StackManager : MonoBehaviour
     public void AddCoins(int amount)
     {
         coin += amount;
+        PlayerPrefs.SetInt("TotalCoins", coin);
+        PlayerPrefs.Save();
+        UpdateCoinUI();
     }
 
     public void ApplyScoreMultiplier(int multiplier)
@@ -225,6 +237,19 @@ public class StackManager : MonoBehaviour
     {
         if (endGameUI != null)
             endGameUI.SetActive(true);
+        LeaderboardSaver.TrySaveScore(score);
+
     }
 
+    public void SetGameOver(bool state)
+    {
+        isGameOver = state;
+        LeaderboardSaver.TrySaveScore(score);
+    }
+
+    private void UpdateCoinUI()
+    {
+        if (coinTMP != null)
+            coinTMP.text = $"{coin}";
+    }
 }

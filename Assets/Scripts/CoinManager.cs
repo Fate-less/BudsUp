@@ -15,7 +15,18 @@ public class CoinManager : MonoBehaviour
         {
             if (block.CompareTag("Block"))
             {
-                Vector3 spawnPos = new Vector3(block.position.x, block.position.y + 0.5f, block.position.z);
+                Block blockComp = block.GetComponent<Block>();
+                if (blockComp == null) continue;
+
+                float halfWidth = blockComp.Width / 2f;
+
+                float randomX = Random.Range(-halfWidth + 0.2f, halfWidth - 0.2f);
+                Vector3 spawnPos = new Vector3(
+                    block.position.x + randomX,
+                    block.position.y + 0.5f,
+                    block.position.z
+                );
+
                 Instantiate(coinPrefab, spawnPos, Quaternion.identity);
             }
         }

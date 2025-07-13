@@ -71,12 +71,25 @@ public class CharacterSelectManager : MonoBehaviour
     {
         string name = characters[currentIndex].characterName;
         int currentLevel = PlayerPrefs.GetInt($"{name}_UpgradeLevel", 0);
-        if (currentLevel < 2)
+
+        int maxLevel = characters[currentIndex].upgradeStageIcons.Length - 1;
+        int upgradeCost = 300;
+
+        if (currentLevel < maxLevel)
         {
-            currentLevel++;
-            PlayerPrefs.SetInt($"{name}_UpgradeLevel", currentLevel);
-            PlayerPrefs.Save();
-            UpdateCharacterDisplay();
+            bool hasEnoughCoins = CoinDisplayManager.Instance.TrySpendCoins(upgradeCost);
+
+            if (hasEnoughCoins)
+            {
+                currentLevel++;
+                PlayerPrefs.SetInt($"{name}_UpgradeLevel", currentLevel);
+                PlayerPrefs.Save();
+                UpdateCharacterDisplay();
+            }
+            else
+            {
+                Debug.Log("Not enough coins to upgrade!");
+            }
         }
     }
 }
