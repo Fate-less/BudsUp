@@ -16,6 +16,7 @@ public class StackManager : MonoBehaviour
     public TextMeshPro scoreTMP;
     public GameObject endGameUI;
     public CharacterPassive activeCharacter;
+    public ClimberController climber;
     [Header("Stack Settings")]
     public float initialWidth = 2f;
     public float initialHeight = 2f;
@@ -30,6 +31,7 @@ public class StackManager : MonoBehaviour
     [SerializeField] private float moveRange = 3f;
 
     public int score = 0;
+    public static StackManager Instance;
 
     private Block previousBlock;
     private int blockCount = 0;
@@ -38,6 +40,11 @@ public class StackManager : MonoBehaviour
     private int scoreMultiplier = 1;
     private float blockSpeedMultiplier = 1f;
     private int forcedPerfectStacksRemaining = 0;
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     private void Start()
     {
@@ -120,7 +127,7 @@ public class StackManager : MonoBehaviour
         if (overlap <= 0f)
         {
             Debug.Log("Game Over!");
-            endGameUI.SetActive(true);
+            ShowEndScreen();
             return;
         }
 
@@ -154,6 +161,7 @@ public class StackManager : MonoBehaviour
         currentBlock.PositionX = newX;
 
         previousBlock = currentBlock;
+        climber.ClimbToBlock(currentBlock.transform, currentBlock.Width);
         SpawnNextBlock();
     }
 
@@ -204,4 +212,19 @@ public class StackManager : MonoBehaviour
     {
         forcedPerfectStacksRemaining = count;
     }
+
+    public Vector3 GetBaseBlockPosition()
+    {
+        if (stackRoot.childCount > 0)
+            return stackRoot.GetChild(0).position;
+        else
+            return stackRoot.position;
+    }
+
+    public void ShowEndScreen()
+    {
+        if (endGameUI != null)
+            endGameUI.SetActive(true);
+    }
+
 }
